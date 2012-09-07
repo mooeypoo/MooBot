@@ -45,7 +45,7 @@ sub new {
     print Dumper $self->{config};
     
     # Run the bot until it is done.
-    $poe_kernel->run();
+#    $poe_kernel->run();
     
     return $self;
 }
