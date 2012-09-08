@@ -28,7 +28,7 @@ sub new {
     unshift(@$plugin_list,"Core::Triggers");
     unshift(@$plugin_list,"Core::Users");
     
-    print Dumper $plugin_list;
+    #print Dumper $plugin_list;
     ## get plugin list:
     if (@$plugin_list) {
         foreach my $plg (@$plugin_list) {
@@ -38,26 +38,27 @@ sub new {
             if ($@) {
                 warn "Could not load $plg because: $@";
             } else {
-                my $plg_cmd_list = $plg->my_command_list;
-              
+                my $plg_cmd_list = $plg->my_command_list if $plg->can("my_command_list");;
+
                 ## Try to instance the object
                 ## (A proper constructor should die() on failure)
                 my $plg_obj = $plg->new();
-                my $name = $plg_obj->plg_name || ref $plg_obj;
                 if ($plg_obj) {
-                    foreach my $trig (keys $plg_cmd_list) {
-                        print "\n";
-                        print Dumper $trig;
-                        print "\n";
-                        my $routine = $trig->{method} if $trig->{method};
-                        ## Now we know about this obj.
-                        $self->{cmds}->{$trig}->{'plugin'} = $name;
-                        $self->{cmds}->{$trig}->{'routine'} = $routine;
+                    my $name = $plg_obj->plg_name || ref $plg_obj;
+                    if ($plg_obj) {
+                        foreach my $trig (keys $plg_cmd_list) {
+                            my $routine = $plg_cmd_list->{$trig}->{method} if $plg_cmd_list->{$trig}->{method} ;
+                            ## Now we know about this obj.
+                            $self->{cmds}->{$trig}->{plugin} = $plg_obj; ## $name;
+                            $self->{cmds}->{$trig}->{routine} = $routine;
+                        }
                     }
                 }
             }
         }
     }
+    
+    return $self;
 
     print Dumper $self->{cmds};
     ## get the core plugins:
@@ -69,13 +70,23 @@ sub process_cmd {
     
     my $cmd = shift @params;
     
+    print "GOT COMMAND TO PROCESS\n";
+    
     if ($self->{cmds}->{$cmd}) {
         ## command exists. check if object exists:
+        print "Command exists.\n";
+        print Dumper $self->{cmds}->{$cmd};
+        
         my $plgname = $self->{cmds}->{$cmd}->{plugin};
         my $routinename = $self->{cmds}->{$cmd}->{routine};
         my $result = $plgname->$routinename(@params) if $plgname->can($routinename);
         return $result;
     }
+}
+
+sub get_cmdlist {
+    my ($self) = shift;
+    return $self->{cmds} if $self->{cmds};
 }
 
 1;

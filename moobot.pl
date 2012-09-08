@@ -24,7 +24,10 @@ print Dumper $config;
 my $bot = MooBot->new($lib, $config);
 my $plugins = MooBot::Plugin->new($config->{plugins});
 
-print Dumper $plugins->{cmds};
+my $cmdlist = $plugins->get_cmdlist();
+
+#print "====\n MooBot::Plugin {cmds}\n ====\n";
+#print Dumper $cmdlist;
 
 POE::Session->create(
     inline_states => {
@@ -59,7 +62,7 @@ sub irc_start{
 
 }
 sub irc_connect {
-    print "Connected: ".$self->{irc}->server_name()."\n";
+    print "Connected: ".$bot->{irc}->server_name()."\n";
 }
 
 sub irc_user_join {
@@ -78,7 +81,8 @@ sub irc_public {
     my ($nick, $hostname) = split(/!/,$who);
     my $channel = $where->[0];
     
-    
+    my $result = $plugins->process_cmd($msg);
+    print Dumper $result;
 }
 
 

@@ -35,7 +35,7 @@ sub do_user_login {
     my $pass = shift;
     
     #### process..
-    return 1;
+    return 'I just did user login';
 }
 
 sub do_user_add {
@@ -43,6 +43,7 @@ sub do_user_add {
     my $user = shift;
     my $pass = shift;
     my $access_level = shift;
+     return 'i just did user add';
 }
 
 1;
