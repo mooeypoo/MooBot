@@ -18,23 +18,70 @@ use MooBot;
 use MooBot::Utils;
 use MooBot::Plugin; 
 
-my $config = read_yml("config.yml","$lib/config");
+my $config = MooBot::Utils::read_yml("config.yml","$lib/config");
+print Dumper $config;
+
 my $bot = MooBot->new($lib, $config);
 my $plugins = MooBot::Plugin->new($config->{plugins});
 
 print Dumper $plugins->{cmds};
 
-#POE::Session->create(
-#    object_states => [
-#        $self => {
-#            _start     => 'irc_start',
-#            irc_001    => 'irc_connect',
-#            irc_join    => 'irc_user_join',
-#            #irc_public => 'irc_public',
-#            #irc_msg => 'irc_pvtmsg',
-#        },
-#    ],
-#);
+POE::Session->create(
+    inline_states => {
+            _start     => \&irc_start,
+            irc_001    => \&irc_connect,
+            irc_join    => \&irc_user_join,
+            irc_public => \&irc_public,
+            #irc_msg => \&irc_pvtmsg,
+        },
+);
+
+#####################
+#### IRC METHODS ####
+######################
+sub irc_start{
+    my ($kernel, $heap) = @_[KERNEL, HEAP];
+    my $chanlist = $bot->{config}->{settings}->{channels};
+    my %chans = %$chanlist;
+
+    $bot->{irc}->plugin_add('AutoJoin', POE::Component::IRC::Plugin::AutoJoin->new( Channels => \%chans ));
+    $bot->{irc}->yield(register => "all");
+    
+    $bot->{irc}->yield(
+		connect => {
+                    Nick     => $config->{settings}->{nick},
+                    Username => $config->{settings}->{username},
+                    Ircname  => $config->{settings}->{ircname},
+                    Server   => $config->{settings}->{server},
+                    Port     => $config->{settings}->{port},
+                }
+    );
+
+}
+sub irc_connect {
+    print "Connected: ".$self->{irc}->server_name()."\n";
+}
+
+sub irc_user_join {
+    my $kernel = $_[KERNEL];
+    my ($who, $channel, $msg) = @_[ARG0 .. ARG2];
+
+    my ($nick, $hostname) = split(/!/, $who);
+    
+    print "$nick JOINED $channel ($hostname)\n";
+    
+}
+
+sub irc_public {
+    my ($kernel) = $_[KERNEL];
+    my ($who, $where, $msg) = @_[ARG0 .. ARG2];
+    my ($nick, $hostname) = split(/!/,$who);
+    my $channel = $where->[0];
+    
+    
+}
+
+
 
 
 

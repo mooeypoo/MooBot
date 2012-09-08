@@ -8,3 +8,4 @@ settings:
   port: '6667'
   server: eris.blackcobalt.net
   username: QuBot
+plugins:

@@ -27,10 +27,13 @@ sub new {
     ## insert the core plugins:
     unshift(@$plugin_list,"Core::Triggers");
     unshift(@$plugin_list,"Core::Users");
+    
+    print Dumper $plugin_list;
     ## get plugin list:
     if (@$plugin_list) {
-        foreach my $plg (keys $plugin_list) {
+        foreach my $plg (@$plugin_list) {
             $plg = "MooBot::Plugin::$plg";
+            print "plg: $plg\n";
             eval "require $plg";
             if ($@) {
                 warn "Could not load $plg because: $@";
@@ -43,6 +46,9 @@ sub new {
                 my $name = $plg_obj->plg_name || ref $plg_obj;
                 if ($plg_obj) {
                     foreach my $trig (keys $plg_cmd_list) {
+                        print "\n";
+                        print Dumper $trig;
+                        print "\n";
                         my $routine = $trig->{method} if $trig->{method};
                         ## Now we know about this obj.
                         $self->{cmds}->{$trig}->{'plugin'} = $name;

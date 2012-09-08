@@ -17,12 +17,12 @@ sub new {
     my $class = shift;
     my $self = {};
     my $lib_path = shift;
-    my $conf_file = shift || "config.yml";
+    my $conf_object = shift;
     
     bless $self, $class;
     
     ## read config file:
-    $self->{config} = $conf_file;
+    $self->{config} = $conf_object;
 
     $self->{irc} = POE::Component::IRC::State->spawn();
 
