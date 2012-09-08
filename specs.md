@@ -22,7 +22,7 @@ Below could be the "core" plugin:
 ** Pick a random reply from array of possible replies, and respond back in the same channel.
 
 # Conceptual specs for Packages #
-## moobot.pl ##
+### moobot.pl ###
 - Reads Config file into a hash.
 - Creates $bot = MooBot->new(); for the session hash
 - Reads through available plugins, set commands from each plugin into COMMANDS hash
@@ -39,14 +39,38 @@ Below could be the "core" plugin:
 -- change channels
 -- etc
 
-### MooBot::Helper ##
+### MooBot::Plugin Class ##
+- Sets up the basic functionality of a plugin
+- Contains all methods of reading through plugins
+
+### MooBot::Plugin::Core::Users ###
+- CORE PLUGIN : in charge of handling users
+- Commands:
+-- adduser
+-- deluser
+-- edituser
+- Methods calls:
+-- On_Bot_Init - reads existing users from user.yml file
+
+### MooBot::Plugin::Core::Triggers ##
+- responsible for reading and outputting 'autotriggers'
+- reads autotriggers.yml file on init
+- Method calls:
+-- On_Bot_Public - checks if there is a trigger, and outputs a random response from the list
+
+### MooBot::Plugin::Channel ###
+- CORE PLUGIN: in charge of basic channel operations
+- Commands:
+-- op
+-- deop
+-- voice
+-- devoice
+-- slap
+
+### MooBot::Helper Functions ##
 Contains the helper functions.
 - save_yml
 - read_yml
 - pwd_encrypt
 - pwd_compare
-
-### MooBot::Plugin Class ##
-- Sets up the basic functionality of a plugin
-- Contains all methods of reading through plugins
 
