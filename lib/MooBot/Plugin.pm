@@ -60,10 +60,40 @@ sub new {
     }
     
     return $self;
+}
 
-    #print Dumper $self->{cmds};
-    #print Dumper $self->{plugins};
+
+sub do_auto_method {
+    my ($self, $method, @params) = @_;
     
+    ## Go over plugin list and see whichever one has the proper method
+    ## If the plugin has that method, run it.
+    ## 
+    ## Possible methods:
+    ## -----------------
+    ## on_bot_init (running on _start)
+    ## on_bot_connect (running on irc_connect)
+    ## on_bot_join_chan (running on irc_user_join only if bot itself is the joining party)
+    ## on_user_join_chan (running on irc_user_join on users except bot)
+
+    my @method_list = qw/
+            on_bot_init
+            on_bot_connect
+            on_bot_join_chan
+            on_user_join_chan
+        /;
+
+    return unless grep($method, @method_list);    
+    
+    ## GO OVER PLUGINS:
+    my @result;
+    foreach my $plgname (keys $self->{plugins}) {
+        ##test to see if method exists:
+        my $plg_obj = $self->{plugins}->{$plgname};
+        my $res = $plg_obj->$method(@params) if $plg_obj->can($method);
+        push(@result, $res) if $res;
+    }
+    return @result;
 }
 
 sub is_cmd {

@@ -24,7 +24,7 @@ my $bot = MooBot->new($lib, $config);
 my $plugins = MooBot::Plugin->new($config->{plugins});
 
 $plugins->set_cmdchar($config->{settings}->{cmdprefix}) if $config->{settings}->{cmdprefix};
-print $plugins->{cmdchar};
+#print $plugins->{cmdchar};
 
 my $cmdlist = $plugins->get_cmdlist();
 
@@ -58,10 +58,13 @@ sub irc_start{
                     Port     => $config->{settings}->{port},
                 }
     );
+    
+    $plugins->do_auto_method('on_bot_init');
 
 }
 sub irc_connect {
     print "Connected: ".$bot->{irc}->server_name()."\n";
+    $plugins->do_auto_method('on_bot_connect');
 }
 
 sub irc_user_join {
@@ -69,8 +72,15 @@ sub irc_user_join {
     my ($who, $channel, $msg) = @_[ARG0 .. ARG2];
 
     my ($nick, $hostname) = split(/!/, $who);
+    my $me = $bot->{irc}->nick_name();
     
     print "$nick JOINED $channel ($hostname)\n";
+
+    if ($hostname eq $bot->{irc}->nick_long_form($me)) {
+        $plugins->do_auto_method('on_bot_join_chan');
+    } else {
+        $plugins->do_auto_method('on_user_join_chan');
+    }
     
 }
 
@@ -80,14 +90,16 @@ sub irc_public {
     my ($nick, $hostname) = split(/!/,$who);
     my $channel = $where->[0];
     
-    my $params;
-    $params->{nick} = $nick;
-    $params->{type} = "public";
-    $params->{location} = $channel;
-    $params->{hostname} = $hostname;
-    $params->{rawmsg} = $msg;
+    my $params = {
+            'nick' => $nick,
+            'type' => 'public',
+            'location' => $channel,
+            'hostname' => $hostname,
+            'rawmsg' => $msg,
+        };
+
     my $result = $plugins->process_cmd($params);
-    print Dumper $result;
+#    print Dumper $result;
 }
 
 

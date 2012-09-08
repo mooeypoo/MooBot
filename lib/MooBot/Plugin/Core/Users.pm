@@ -29,16 +29,21 @@ sub new {
     ##read users.yml
 }
 
+sub on_bot_init {
+    my ($self, @params) = @_;
+    print "I'm the MooBot::Core::Users plugin, and I just ran 'on_bot_init'!\n";
+}
+
 sub do_user_login {
-    my ($self, @params) = shift;
+    my ($self, @params) = @_;
     
     #### process..
-    print Dumper @params;
-    return 'I just did user login';
+    #print Dumper @params;
+    return "I just did user login\n";
 }
 
 sub do_user_add {
-    my ($self, @params) = shift;
+    my ($self, @params) = @_;
 
     print Dumper @params;
      return 'i just did user add';
