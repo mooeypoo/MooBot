@@ -4,6 +4,8 @@ use File::Basename 'dirname';
 use File::Spec::Functions qw(catdir splitdir);
 use POE;
 
+use Data::Dumper;
+
 ## Include MooBot/bin for specific packages:
 my $lib;
 BEGIN {
@@ -13,10 +15,30 @@ BEGIN {
 }
 
 use MooBot;
+use MooBot::Utils;
+use MooBot::Plugin; 
 
-my $bot = MooBot->new($lib, "config.yml");
+my $config = read_yml("config.yml","$lib/config");
+my $bot = MooBot->new($lib, $config);
+my $plugins = MooBot::Plugin->new($config->{plugins});
 
-    # Run the bot until it is done.
-    $poe_kernel->run();
+print Dumper $plugins->{cmds};
+
+#POE::Session->create(
+#    object_states => [
+#        $self => {
+#            _start     => 'irc_start',
+#            irc_001    => 'irc_connect',
+#            irc_join    => 'irc_user_join',
+#            #irc_public => 'irc_public',
+#            #irc_msg => 'irc_pvtmsg',
+#        },
+#    ],
+#);
+
+
+
+# Run the bot
+$poe_kernel->run();
 
 exit;

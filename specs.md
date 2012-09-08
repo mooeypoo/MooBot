@@ -31,7 +31,7 @@ Below could be the "core" plugin:
 - > sends result of plugin-call to MooBot::Helper::speak();
 - calls $poe_kernel->run();
 
-### MooBot Class ###
+### MooBot (Class) ###
 - accepts config hash to initiate irc sessions
 - handles anything related to $irc object
 - > yield (answer)
@@ -39,11 +39,11 @@ Below could be the "core" plugin:
 - > change channels
 - > etc
 
-### MooBot::Plugin Class ##
+### MooBot::Plugin (Class) ##
 * Sets up the basic functionality of a plugin
 * Contains all methods of reading through plugins
 
-### MooBot::Plugin::Core::Users ###
+### MooBot::Plugin::Core::Users (Class) ###
 * CORE PLUGIN : in charge of handling users
 * Commands:
 * > adduser
@@ -52,13 +52,13 @@ Below could be the "core" plugin:
 * Methods calls:
 * > On_Bot_Init - reads existing users from user.yml file
 
-### MooBot::Plugin::Core::Triggers ##
+### MooBot::Plugin::Core::Triggers (Class) ##
 * responsible for reading and outputting 'autotriggers'
 * reads autotriggers.yml file on init
 * Method calls:
 * > On_Bot_Public - checks if there is a trigger, and outputs a random response from the list
 
-### MooBot::Plugin::Channel ###
+### MooBot::Plugin::Channel (Class) ###
 * CORE PLUGIN: in charge of basic channel operations
 * Commands:
 * > op
@@ -67,7 +67,7 @@ Below could be the "core" plugin:
 * > devoice
 * > slap
 
-### MooBot::Helper Functions ##
+### MooBot::Helper Functions ###
 Contains the helper functions.
 * save_yml
 * read_yml

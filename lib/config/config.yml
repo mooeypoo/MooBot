@@ -1,0 +1,10 @@
+---
+settings:
+  channels:
+    '#moo': ''
+  cmdprefix: '!'
+  ircname: QuBot 2012
+  nick: QuBot
+  port: '6667'
+  server: eris.blackcobalt.net
+  username: QuBot
