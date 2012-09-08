@@ -17,7 +17,7 @@ Below could be the "core" plugin:
 * Check if text starts with a command. If yes:
 * > Send command through the COMMANDS hash to the proper plugin sub to be processed
 * > If the process of the plugin results in a 'reply hash' (some reply to channel or user), send it as reply to appropriate location
----
+
 * Check if text has trigger word (skip if already known it is a command, and work only on "Public" chat) If yes:
 * > Pick a random reply from array of possible replies, and respond back in the same channel.
 
