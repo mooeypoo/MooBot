@@ -30,19 +30,17 @@ sub new {
 }
 
 sub do_user_login {
-    my $self = shift;
-    my $user = shift;
-    my $pass = shift;
+    my ($self, @params) = shift;
     
     #### process..
+    print Dumper @params;
     return 'I just did user login';
 }
 
 sub do_user_add {
-    my $self = shift;
-    my $user = shift;
-    my $pass = shift;
-    my $access_level = shift;
+    my ($self, @params) = shift;
+
+    print Dumper @params;
      return 'i just did user add';
 }
 

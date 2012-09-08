@@ -19,15 +19,14 @@ use MooBot::Utils;
 use MooBot::Plugin; 
 
 my $config = MooBot::Utils::read_yml("config.yml","$lib/config");
-print Dumper $config;
 
 my $bot = MooBot->new($lib, $config);
 my $plugins = MooBot::Plugin->new($config->{plugins});
 
-my $cmdlist = $plugins->get_cmdlist();
+$plugins->set_cmdchar($config->{settings}->{cmdprefix}) if $config->{settings}->{cmdprefix};
+print $plugins->{cmdchar};
 
-#print "====\n MooBot::Plugin {cmds}\n ====\n";
-#print Dumper $cmdlist;
+my $cmdlist = $plugins->get_cmdlist();
 
 POE::Session->create(
     inline_states => {
@@ -81,7 +80,13 @@ sub irc_public {
     my ($nick, $hostname) = split(/!/,$who);
     my $channel = $where->[0];
     
-    my $result = $plugins->process_cmd($msg);
+    my $params;
+    $params->{nick} = $nick;
+    $params->{type} = "public";
+    $params->{location} = $channel;
+    $params->{hostname} = $hostname;
+    $params->{rawmsg} = $msg;
+    my $result = $plugins->process_cmd($params);
     print Dumper $result;
 }
 

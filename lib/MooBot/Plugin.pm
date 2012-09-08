@@ -33,7 +33,7 @@ sub new {
     if (@$plugin_list) {
         foreach my $plg (@$plugin_list) {
             $plg = "MooBot::Plugin::$plg";
-            print "plg: $plg\n";
+            #print "plg: $plg\n";
             eval "require $plg";
             if ($@) {
                 warn "Could not load $plg because: $@";
@@ -49,7 +49,8 @@ sub new {
                         foreach my $trig (keys $plg_cmd_list) {
                             my $routine = $plg_cmd_list->{$trig}->{method} if $plg_cmd_list->{$trig}->{method} ;
                             ## Now we know about this obj.
-                            $self->{cmds}->{$trig}->{plugin} = $plg_obj; ## $name;
+                            $self->{plugins}->{$name} = $plg_obj; ## $name;
+                            $self->{cmds}->{$trig}->{plugin} = $name;
                             $self->{cmds}->{$trig}->{routine} = $routine;
                         }
                     }
@@ -60,28 +61,55 @@ sub new {
     
     return $self;
 
-    print Dumper $self->{cmds};
-    ## get the core plugins:
+    #print Dumper $self->{cmds};
+    #print Dumper $self->{plugins};
     
 }
 
-sub process_cmd {
-    my ($self, @params) = @_;
+sub is_cmd {
+    my $self = shift;
+    my $txt = shift || return;
+    #my $cmdchar = shift || '!';
     
-    my $cmd = shift @params;
+    return $txt if !$self->{cmdchar};
     
-    print "GOT COMMAND TO PROCESS\n";
-    
-    if ($self->{cmds}->{$cmd}) {
-        ## command exists. check if object exists:
-        print "Command exists.\n";
-        print Dumper $self->{cmds}->{$cmd};
-        
-        my $plgname = $self->{cmds}->{$cmd}->{plugin};
-        my $routinename = $self->{cmds}->{$cmd}->{routine};
-        my $result = $plgname->$routinename(@params) if $plgname->can($routinename);
-        return $result;
+    if (index($txt, $self->{cmdchar}) == 0) {
+        my $ncmd = substr($txt, 1, length($txt)-1);
+        return $ncmd; ##return cmd+params
     }
+    return;
+}
+
+
+sub process_cmd {
+    my ($self, $phash) = @_;
+    
+    my @params = split(' ',$phash->{rawmsg});
+    my $cmd = shift @params;
+    $cmd = $self->is_cmd($cmd);
+    if ($cmd) {
+#        print "GOT COMMAND TO PROCESS: $cmd\n";
+        
+        if ($self->{cmds}->{$cmd}) {
+            ##insert the general parameters into the params array:
+            delete $phash->{rawmsg};
+            unshift(@params, $phash);
+
+            my $plg = $self->{plugins}->{$self->{cmds}->{$cmd}->{plugin}};
+            my $routinename = $self->{cmds}->{$cmd}->{routine};
+            ## check if the routine exists and can be called:
+            my $result = $plg->$routinename(@params) if $plg->can($routinename);
+            ## if there's any result, return it for later processing:
+            return $result;
+        }
+    }
+}
+
+sub set_cmdchar {
+    my $self = shift;
+    my $cmdchar = shift || return;
+    
+    $self->{cmdchar} = $cmdchar;
 }
 
 sub get_cmdlist {
