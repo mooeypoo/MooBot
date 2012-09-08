@@ -20,3 +20,33 @@ Below could be the "core" plugin:
 ---
 * Check if text has trigger word (skip if already known it is a command, and work only on "Public" chat) If yes:
 ** Pick a random reply from array of possible replies, and respond back in the same channel.
+
+# Conceptual specs for Packages #
+## moobot.pl ##
+- Reads Config file into a hash.
+- Creates $bot = MooBot->new(); for the session hash
+- Reads through available plugins, set commands from each plugin into COMMANDS hash
+- Manipulates event calls.
+-- Calls plugin-specific events for each call
+-- sends result of plugin-call to MooBot::Helper::speak();
+- calls $poe_kernel->run();
+
+### MooBot Class ###
+- accepts config hash to initiate irc sessions
+- handles anything related to $irc object
+-- yield (answer)
+-- change nickname
+-- change channels
+-- etc
+
+### MooBot::Helper ##
+Contains the helper functions.
+- save_yml
+- read_yml
+- pwd_encrypt
+- pwd_compare
+
+### MooBot::Plugin Class ##
+- Sets up the basic functionality of a plugin
+- Contains all methods of reading through plugins
+
