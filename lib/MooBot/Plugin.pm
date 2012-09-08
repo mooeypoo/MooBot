@@ -64,9 +64,11 @@ sub process_cmd {
     my $cmd = shift @params;
     
     if ($self->{cmds}->{$cmd}) {
-        #$self->{cmds}->{$cmd}->(@params);
         ## command exists. check if object exists:
-        $self->{cmds}->{$cmd}->{plugin}->$self->{cmds}->{$cmd}->{routine}(@params) if $self->{cmds}->{$cmd}->{plugin}->can($self->{cmds}->{$cmd}->{routine})
+        my $plgname = $self->{cmds}->{$cmd}->{plugin};
+        my $routinename = $self->{cmds}->{$cmd}->{routine};
+        my $result = $plgname->$routinename(@params) if $plgname->can($routinename);
+        return $result;
     }
 }
 
