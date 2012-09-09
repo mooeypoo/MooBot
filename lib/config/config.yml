@@ -1,11 +1,12 @@
 ---
+plugins: ~
 settings:
   channels:
     '#moo': ''
   cmdprefix: '!'
+  fullpath: ./lib
   ircname: QuBot 2012
   nick: QuBot
   port: '6667'
   server: eris.blackcobalt.net
   username: QuBot
-plugins:

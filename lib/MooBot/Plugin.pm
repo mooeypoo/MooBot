@@ -1,29 +1,36 @@
 #!/usr/bin/perl
 
 package MooBot::Plugin;
+
 # MooBot::Plugin
 # --------------
 # Sets up basic functionality and hierarchy of MooBot plugins
 # --------------
+
 use strict; use warnings;
+
+
 use Carp qw/ confess /;
 use Data::Dumper;
 
 ## ALL PLUGINS MUST HAVE THESE TWO ROUTINES:
-sub plg_name { 'Plugin' }
-sub my_command_list {
-    ##output a hash:
-    ## $result->{trigger}->{method}
-}
+#sub plg_name { 'Plugin' }
+#sub my_command_list {
+#    ##output a hash:
+#    ## $result->{trigger}->{method}
+#}
 ############################################
 
 sub new {
     my $class = shift;
+    my $lib_path = shift;
     my $plugin_list = shift;
     my $self = {};
 
     bless $self, $class;
-    
+
+    $self->{lib_path} = $lib_path;
+    print "$lib_path\n";
     ## insert the core plugins:
     unshift(@$plugin_list,"Core::Triggers");
     unshift(@$plugin_list,"Core::Users");
@@ -100,11 +107,11 @@ sub is_cmd {
     my $self = shift;
     my $txt = shift || return;
     #my $cmdchar = shift || '!';
-    
     return $txt if !$self->{cmdchar};
     
     if (index($txt, $self->{cmdchar}) == 0) {
         my $ncmd = substr($txt, 1, length($txt)-1);
+        print "THIS IS A COMMAND! $ncmd\n";
         return $ncmd; ##return cmd+params
     }
     return;
@@ -118,10 +125,10 @@ sub process_cmd {
     my $cmd = shift @params;
     $cmd = $self->is_cmd($cmd);
     if ($cmd) {
-#        print "GOT COMMAND TO PROCESS: $cmd\n";
-        
+        print "RECOGNIZED A COMMAND: $cmd\n";
         if ($self->{cmds}->{$cmd}) {
             ##insert the general parameters into the params array:
+            print "Command is in the cmd hash\n";
             delete $phash->{rawmsg};
             unshift(@params, $phash);
 
@@ -145,6 +152,11 @@ sub set_cmdchar {
 sub get_cmdlist {
     my ($self) = shift;
     return $self->{cmds} if $self->{cmds};
+}
+
+sub get_lib_path {
+    my ($self) = shift;
+    return $self->{lib_path} if $self->{lib_path};
 }
 
 1;

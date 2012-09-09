@@ -15,7 +15,7 @@ use Data::Dumper;
 
 use Exporter;
 
-our @isa = qw( Exporter );
+our @ISA = qw( Exporter );
 our @EXPORT_OK = qw/
     save_yml
     read_yml
@@ -23,7 +23,6 @@ our @EXPORT_OK = qw/
     pwd_compare
 /;
 our @EXPORT = @EXPORT_OK;
-
 
 sub save_yml{
 	my $ymlhash = shift || return;
@@ -52,7 +51,7 @@ sub read_yml {
     $filename = $folder."/".$filename if $folder;
     
     my $ymlfile = read_file($filename) if (-e $filename);
-    
+    print "\n$filename\n";
     my $ymlvar = Load $ymlfile if ($ymlfile);
     
     return $ymlvar if $ymlvar;
@@ -82,3 +81,4 @@ sub pwd_compare {
     
     return 0; ## FALSE
 }
+

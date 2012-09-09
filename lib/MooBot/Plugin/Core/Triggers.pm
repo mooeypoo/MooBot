@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 package MooBot::Plugin::Core::Triggers;
-use base MooBot;
+use base MooBot::Plugin;
 use strict; use warnings;
 use Carp qw/ confess /;
 

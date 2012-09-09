@@ -16,7 +16,6 @@ use Carp qw/ confess /;
 sub new {
     my $class = shift;
     my $self = {};
-    my $lib_path = shift;
     my $conf_object = shift;
     
     bless $self, $class;
@@ -26,21 +25,6 @@ sub new {
 
     $self->{irc} = POE::Component::IRC::State->spawn();
 
-    #POE::Session->create(
-    #        object_states => [
-    #            $self => {
-    #                _start     => 'irc_start',
-    #                irc_001    => 'irc_connect',
-    #                irc_join    => 'irc_user_join',
-    #                #irc_public => 'irc_public',
-    #                #irc_msg => 'irc_pvtmsg',
-    #            },
-    #  ],
-    #);
-    
-    # Run the bot until it is done.
-#    $poe_kernel->run();
-    
     return $self;
 }
 
@@ -48,31 +32,35 @@ sub new {
 sub speak {
     my $self= shift;
     my $speak_hash = shift;
-    ## EXPECTS HASH:
-
-    # $speak_hash->{0}->{type}
-    # $speak_hash->{0}->{where}
-    # $speak_hash->{0}->{text}
-
-    # $speak_hash->{1}->{type}
-    # $speak_hash->{1}->{where}
-    # $speak_hash->{1}->{text}
-    # etc
     
-    my $err=0;
-        
-    foreach my $sp (keys %$speak_hash) {
-        my $type = $speak_hash->{$sp}->{type} ? $speak_hash->{$sp}->{type} : 'privmsg';
-        $err=1 if (!$speak_hash->{$sp}->{loc}) or (!$speak_hash->{$sp}->{reply});
-        
-        my $loc = $speak_hash->{$sp}->{where} if $speak_hash->{$sp}->{where};
-        my $reply = $speak_hash->{$sp}->{text} if $speak_hash->{$sp}->{text};
-        
+    my $err =0;
+
+    if (ref $speak_hash eq 'ARRAY') { ## MULTIPLE REPLIES
+        foreach my $line_hash (@$speak_hash) {
+            my $type = $line_hash->{type} ? $line_hash->{type} : 'privmsg';
+            $err=1 if (!$line_hash->{where}) or (!$line_hash->{text});
+            
+            my $loc = $line_hash->{where} if $line_hash->{where};
+            my $reply = $line_hash->{text} if $line_hash->{text};
+            
+            ## speak:
+            unless ($err) {
+                $self->{irc}->yield($type => $loc, $reply);
+            }
+        }
+    } elsif (ref $speak_hash eq 'HASH') { ## SINGLE REPLY
+        my $type = $speak_hash->{type} ? $speak_hash->{type} : 'privmsg';
+        $err=1 if (!$speak_hash->{where}) or (!$speak_hash->{text});
+            
+        my $loc = $speak_hash->{where} if $speak_hash->{where};
+        my $reply = $speak_hash->{text} if $speak_hash->{text};
+            
         ## speak:
         unless ($err) {
             $self->{irc}->yield($type => $loc, $reply);
         }
     }
+
     
 }
 

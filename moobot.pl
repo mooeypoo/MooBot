@@ -16,15 +16,24 @@ BEGIN {
 
 use MooBot;
 use MooBot::Utils;
-use MooBot::Plugin; 
+use MooBot::Plugin;
 
-my $config = MooBot::Utils::read_yml("config.yml","$lib/config");
+my $confpath = "$lib/config";
 
-my $bot = MooBot->new($lib, $config);
-my $plugins = MooBot::Plugin->new($config->{plugins});
+my $config = read_yml("config.yml",$confpath);
+if ((!defined $config->{settings}->{fullpath}) or ($config->{settings}->{fullpath} ne $lib)) {
+    $config->{settings}->{fullpath} = $lib;
+    save_yml($config,"config.yml",$confpath);
+}
+
+print Dumper $config;
+
+my $bot = MooBot->new($config);
+my $plugins = MooBot::Plugin->new($confpath, $config->{plugins});
+
+
 
 $plugins->set_cmdchar($config->{settings}->{cmdprefix}) if $config->{settings}->{cmdprefix};
-#print $plugins->{cmdchar};
 
 my $cmdlist = $plugins->get_cmdlist();
 
@@ -34,7 +43,7 @@ POE::Session->create(
             irc_001    => \&irc_connect,
             irc_join    => \&irc_user_join,
             irc_public => \&irc_public,
-            #irc_msg => \&irc_pvtmsg,
+            irc_msg => \&irc_privmsg,
         },
 );
 
@@ -92,14 +101,36 @@ sub irc_public {
     
     my $params = {
             'nick' => $nick,
-            'type' => 'public',
+            'type' => 'privmsg',
             'location' => $channel,
             'hostname' => $hostname,
             'rawmsg' => $msg,
         };
 
     my $result = $plugins->process_cmd($params);
-#    print Dumper $result;
+    print Dumper $result;
+    
+        $bot->speak($result) if ($result);
+}
+
+sub irc_privmsg {
+    my ($kernel) = $_[KERNEL];
+    my ($hostmask, $where, $msg) = @_[ARG0 .. ARG2];
+    my ($nick, $hostname) = split(/!/,$hostmask);
+    my $channel = $where->[0];
+    
+    my $params = {
+            'nick' => $nick,
+            'type' => 'privmsg',
+            #'location' => $channel, SEND NO LOCATION. PRIVATE CHAT.
+            'hostname' => $hostname,
+            'rawmsg' => $msg,
+        };
+
+    my $result = $plugins->process_cmd($params);
+    print Dumper $result;
+    
+        $bot->speak($result) if ($result);
 }
 
 
