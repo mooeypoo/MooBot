@@ -111,7 +111,7 @@ sub is_cmd {
     
     if (index($txt, $self->{cmdchar}) == 0) {
         my $ncmd = substr($txt, 1, length($txt)-1);
-        print "THIS IS A COMMAND! $ncmd\n";
+        #print "THIS IS A COMMAND! $ncmd\n";
         return $ncmd; ##return cmd+params
     }
     return;
@@ -128,7 +128,7 @@ sub process_cmd {
         print "RECOGNIZED A COMMAND: $cmd\n";
         if ($self->{cmds}->{$cmd}) {
             ##insert the general parameters into the params array:
-            print "Command is in the cmd hash\n";
+            #print "Command is in the cmd hash\n";
             delete $phash->{rawmsg};
             unshift(@params, $phash);
 

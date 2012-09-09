@@ -65,12 +65,12 @@ sub read_yml {
 
 sub pwd_encrypt {
     my $plainpass = shift || return;
-    
-    my @chars = ('a' .. 'z', 0 .. 9, '.', '/' );
-    my $salt = join '', map { $chars[rand @chars] } 1 .. 8;
-        $salt = join '', '$2a$', '08$', $salt;
 
-    return  Crypt::Eksblowfish::Bcrypt::bcrypt($plainpass, $salt);
+    my $salt = Crypt::Eksblowfish::Bcrypt::en_base64( join '', map { chr int rand 256 } 1 .. 16 );
+    my $cost = '08';
+    my $bsettings = join '', '$2a$', $cost, '$', $salt;
+
+    return Crypt::Eksblowfish::Bcrypt::bcrypt($plainpass, $bsettings);
 }
 
 sub pwd_compare {

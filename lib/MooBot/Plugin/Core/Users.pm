@@ -14,12 +14,20 @@ use MooBot::Utils;
 
 use File::Basename 'dirname';
 use File::Spec::Functions qw(catdir splitdir);
+use Scalar::Util qw(looks_like_number);
 
 use Carp qw/ confess /;
 use Data::Dumper;
 use YAML::XS;
 use File::Slurp;
-#use File::Open qw(fopen fopen_nothrow fsysopen fsysopen_nothrow);
+
+## Defining constants:
+use constant {
+    AUTH_ADMIN => 9999,
+    AUTH_BOTOP => 500,
+    AUTH_CONTRIBUTOR => 100,
+    AUTH_USER => 10,
+};
 
 
 ## ALL PLUGINS MUST HAVE THESE TWO ROUTINES:
@@ -84,12 +92,6 @@ sub do_user_login {
                 return $r;
             }
         }
-
-        print "Params:\n";
-        print Dumper $params;
-        print "---\nSysparams:\n";
-        print Dumper $sysparams;
-
         ### Check if username is already logged in from this hostname:
         if ($self->{loggedin}->{$sysparams->{'hostname'}}) {
             ## already logged in
@@ -97,26 +99,26 @@ sub do_user_login {
             return $r;
         }
         ##check if username exists:
-        unless ($self->{users}->{$params->{username}}) {
+        unless ($self->{users}->{$params->{'username'}}) {
             $r->{text} = "Couldn't find the user.";
             return $r;
         }
         ##check if pass is right:
-        unless (pwd_compare($params->{pass},$self->{users}->{$params->{username}}->{pass})) {
+        unless (pwd_compare($params->{'pass'},$self->{users}->{$params->{'username'}}->{pass})) {
             $r->{text} = "Couldn't find the user.";
             return $r;
         }
         ## all good, add to hash:
-        $self->{loggedin}->{$sysparams->{hostname}} = {
-                'access_level' => $self->{users}->{$params->{username}}->{access_level},
-                'hostname' => $sysparams->{hostname},
-                'nick' => $sysparams->{nick},
-                'username' => $params->{username},
+        $self->{loggedin}->{$sysparams->{'hostname'}} = {
+                'access_level' => $self->{users}->{$params->{'username'}}->{access_level},
+                'hostname' => $sysparams->{'hostname'},
+                'nick' => $sysparams->{'nick'},
+                'username' => $params->{'username'},
             };
 
         ##update users:
-        $self->{users}->{$params->{username}}->{last_login} = time();
-        $self->{users}->{$params->{username}}->{last_nick} = $sysparams->{nick};
+        $self->{users}->{$params->{'username'}}->{last_login} = time();
+        $self->{users}->{$params->{'username'}}->{last_nick} = $sysparams->{nick};
         save_yml($self->{users},'users.yml',$self->{my_path});
         
         $r->{text} = "Login successful.";
@@ -130,14 +132,77 @@ sub do_user_login {
 }
 
 sub do_user_add {
-    my ($self, @params) = @_;
+    my ($self, @fullparams) = @_;
+    my @syntax = qw/username pass access_level email/;
+    my @required = qw/username pass/;
+    my ($params, $r);
 
-    print Dumper @params;
-     return 'i just did user add';
+    my $sysparams = shift @fullparams;
+    
+    $r->{'type'} = $sysparams->{type};
+    $r->{'where'} = $sysparams->{nick};
+    $r->{'where'} = $sysparams->{location} if $sysparams->{location};
+
+        for my $synt (@syntax) {
+            $params->{$synt} = shift @fullparams;
+        }
+        for my $req (@required) {
+            unless ($params->{$req}) {
+                #return output("Missing parameter: $req.","privmsg","user");
+                $r->{text} = "Missing parameter: $req.";
+                return $r;
+            }
+        }
+        ### Check if username has sufficient auth:
+        unless ($self->check_auth($sysparams->{'hostname'},AUTH_BOTOP)) {
+            ## already logged in
+            $r->{text} = "You're not authorized to do this.";
+            return $r;
+        }
+        
+        
+        my $newuser;
+        if (looks_like_number($params->{'access_level'}) and $self->check_auth($sysparams->{'hostname'}, $params->{'access_level'}+10)) {
+            $newuser->{access_level} = $params->{access_level};
+        } else {
+            $newuser->{access_level} = 10;
+        }
+        $newuser->{username} = $params->{'username'} if $params->{'username'};
+        $newuser->{pass} = pwd_encrypt($params->{'pass'});
+
+        ## Add to users:
+        if ($self->{users}) {
+            $self->{users}->{$params->{'username'}} = $newuser;
+        } else {
+            $self->{users} = ($params->{username} => $newuser);
+        }
+        
+        print "self users\n";
+        print Dumper $self->{users};
+        
+#        $self->{users}->{$newuser->{username}} = $newuser;
+        
+        ##resave the yml file:
+        save_yml($self->{users},'users.yml',$self->{my_path});
+
+        $r->{text} = "User '".$params->{username}."' added with access level ".$newuser->{access_level};
+        return $r;
 }
 
-sub _logged_users {
+sub check_auth {
+    my $self = shift;
+    my $hostname = shift || return;
+    my $req_access = shift;
     
+    return 1 if (defined $self->{loggedin}->{$hostname}) and ($self->{loggedin}->{$hostname}->{access_level} >= $req_access);
+
+    return;
+}
+
+
+sub get_logged_users {
+    my $self = shift;
+    return $self->{loggedin};
 }
 
 1;
