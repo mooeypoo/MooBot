@@ -108,9 +108,7 @@ sub irc_public {
         };
 
     my $result = $plugins->process_cmd($params);
-    print Dumper $result;
-    
-        $bot->speak($result) if ($result);
+    $bot->speak($result);
 }
 
 sub irc_privmsg {
@@ -128,9 +126,7 @@ sub irc_privmsg {
         };
 
     my $result = $plugins->process_cmd($params);
-    print Dumper $result;
-    
-        $bot->speak($result) if ($result);
+    $bot->speak($result);
 }
 
 

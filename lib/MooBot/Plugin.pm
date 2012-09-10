@@ -106,8 +106,8 @@ sub do_auto_method {
 sub is_cmd {
     my $self = shift;
     my $txt = shift || return;
-    #my $cmdchar = shift || '!';
-    return $txt if !$self->{cmdchar};
+
+    #return $txt if (!$self->{cmdchar});
     
     if (index($txt, $self->{cmdchar}) == 0) {
         my $ncmd = substr($txt, 1, length($txt)-1);
@@ -122,22 +122,26 @@ sub process_cmd {
     my ($self, $phash) = @_;
     
     my @params = split(' ',$phash->{rawmsg});
-    my $cmd = shift @params;
-    $cmd = $self->is_cmd($cmd);
+    my $cmd = $self->is_cmd($params[0]);
+    shift @params;
     if ($cmd) {
         print "RECOGNIZED A COMMAND: $cmd\n";
         if ($self->{cmds}->{$cmd}) {
             ##insert the general parameters into the params array:
             #print "Command is in the cmd hash\n";
-            delete $phash->{rawmsg};
-            unshift(@params, $phash);
 
+            delete $phash->{rawmsg};
+            $phash->{params} = \@params;
+            #unshift(@params, $phash);
+
+        print "process_cmd PARAMS:\n";
+        print Dumper $phash;
+
+            
             my $plg = $self->{plugins}->{$self->{cmds}->{$cmd}->{plugin}};
             my $routinename = $self->{cmds}->{$cmd}->{routine};
             ## check if the routine exists and can be called:
-            my $result = $plg->$routinename(@params) if $plg->can($routinename);
-            ## if there's any result, return it for later processing:
-            return $result;
+            return $plg->$routinename($phash) if $plg->can($routinename);
         }
     }
 }

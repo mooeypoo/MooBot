@@ -31,7 +31,8 @@ sub new {
 
 sub speak {
     my $self= shift;
-    my $speak_hash = shift;
+    my $speak_hash = shift || return;
+    
     
     my $err =0;
 

@@ -1,8 +1,7 @@
 #!/usr/bin/perl
 
 package MooBot::Plugin::Core::Users;
-use base MooBot::Plugin;
-
+#use base MooBot::Plugin;
 
 use strict; use warnings;
 
@@ -15,6 +14,7 @@ use MooBot::Utils;
 use File::Basename 'dirname';
 use File::Spec::Functions qw(catdir splitdir);
 use Scalar::Util qw(looks_like_number);
+use POSIX qw(strftime);
 
 use Carp qw/ confess /;
 use Data::Dumper;
@@ -38,6 +38,8 @@ sub my_command_list {
     $c->{login}->{method} = "do_user_login";
     $c->{adduser}->{method} = "do_user_add";
     $c->{edituser}->{method} = "do_user_edit";
+    $c->{userinfo}->{method} = "do_user_info";
+    
     return $c;
 }
 ############################################
@@ -52,7 +54,14 @@ sub new {
     my @base = ( splitdir( dirname(__FILE__) ) );
     $self->{my_path}  = './'.join ('/', @base);
     $self->{users} = read_yml("users.yml",$self->{my_path});
-    print Dumper $self->{users};
+    #print Dumper $self->{users};
+    
+    $self->{access_levels} = {
+            99999 => 'BOT ADMIN',
+            500 => 'BOT OPERATOR',
+            100 => 'CONTRIBUTOR',
+            10 => 'USER',
+        };
     
     return $self;
 }
@@ -63,18 +72,15 @@ sub on_bot_init {
 }
 
 sub do_user_login {
-    my ($self, @fullparams) = @_;
+    my ($self, $sysparams) = @_;
     my @syntax = qw/username pass/;
     my @required = qw/username pass/;
+    my ($params, $r);
 
     #print Dumper @fullparams;
+    my @fullparams = @{$sysparams->{params}};
 
-    my ($params, $r);
-    my $sysparams = shift @fullparams;
-            #'nick' => $nick,
-            #'type' => 'privmsg'/'ctcp',
-            #'location' => $channel/none,
-            #'hostname' => $hostname,
+#    my $sysparams = shift @fullparams;
 
     unless ($sysparams->{location}) { ## if there's no $channel, it's a pvt chat
         
@@ -86,9 +92,9 @@ sub do_user_login {
         for my $synt (@syntax) {
             $params->{$synt} = shift @fullparams;
         }
+        print Dumper $params;
         for my $req (@required) {
             unless ($params->{$req}) {
-                #return output("Missing parameter: $req.","privmsg","user");
                 $r->{text} = "Missing parameter: $req.";
                 return $r;
             }
@@ -106,7 +112,7 @@ sub do_user_login {
         }
         ##check if pass is right:
         unless (pwd_compare($params->{'pass'},$self->{users}->{$params->{'username'}}->{pass})) {
-            $r->{text} = "Couldn't find the user.";
+            $r->{text} = "Wrong password.";
             return $r;
         }
         ## all good, add to hash:
@@ -123,22 +129,19 @@ sub do_user_login {
         save_yml($self->{users},'users.yml',$self->{my_path});
         
         $r->{text} = "Login successful.";
-        #print Dumper $self->{loggedin};
         return $r;
     }
-    
-    #### process..
-    #print Dumper @params;
-    $r->{text} = "Some unknown error occured.";
+    $r->{text} = "Don't do this in public!";
 }
 
 sub do_user_add {
-    my ($self, @fullparams) = @_;
+    my ($self, $sysparams) = @_;
     my @syntax = qw/username pass access_level email/;
     my @required = qw/username pass/;
     my ($params, $r);
 
-    my $sysparams = shift @fullparams;
+    my @fullparams = @{$sysparams->{params}};
+    #my $sysparams = shift @fullparams;
     
     $r->{'type'} = $sysparams->{type};
     $r->{'where'} = $sysparams->{nick};
@@ -149,7 +152,6 @@ sub do_user_add {
         }
         for my $req (@required) {
             unless ($params->{$req}) {
-                #return output("Missing parameter: $req.","privmsg","user");
                 $r->{text} = "Missing parameter: $req.";
                 return $r;
             }
@@ -163,7 +165,7 @@ sub do_user_add {
         
         
         my $newuser;
-        if (looks_like_number($params->{'access_level'}) and $self->check_auth($sysparams->{'hostname'}, $params->{'access_level'}+10)) {
+        if (looks_like_number($params->{access_level}) and $self->check_auth($sysparams->{'hostname'}, $params->{'access_level'}+10)) {
             $newuser->{access_level} = $params->{access_level};
         } else {
             $newuser->{access_level} = 10;
@@ -175,13 +177,8 @@ sub do_user_add {
         if ($self->{users}) {
             $self->{users}->{$params->{'username'}} = $newuser;
         } else {
-            $self->{users} = ($params->{username} => $newuser);
+            $self->{users} = {$params->{'username'} => $newuser};
         }
-        
-        print "self users\n";
-        print Dumper $self->{users};
-        
-#        $self->{users}->{$newuser->{username}} = $newuser;
         
         ##resave the yml file:
         save_yml($self->{users},'users.yml',$self->{my_path});
@@ -192,11 +189,12 @@ sub do_user_add {
 
 
 sub do_user_edit {
-    my ($self, @fullparams) = @_;
+    my ($self, $sysparams) = @_;
     my ($params, $r);
 
-    my $sysparams = shift @fullparams;
-    
+    #my $sysparams = shift @fullparams;
+    my @fullparams = @{$sysparams->{params}};
+
     $r->{'type'} = $sysparams->{type};
     $r->{'where'} = $sysparams->{nick};
     $r->{'where'} = $sysparams->{location} if $sysparams->{location};
@@ -217,23 +215,25 @@ sub do_user_edit {
     foreach my $p (@fullparams) {
         ## expect 'param:value'
         my @pair = split(':',$p);
-        $pair[0] = 'username' if $pair[0] eq 'user';
-        $pair[0] = 'pass' if $pair[0] eq 'password';
-        $pair[0] = 'access_level' if $pair[0] eq 'level';
-        $params->{$pair[0]} = $pair[1];
+        unless ($pair[0] eq 'username' or $pair[0] eq 'user') {
+            $pair[0] = 'pass' if $pair[0] eq 'password';
+            $pair[0] = 'access_level' if $pair[0] eq 'level';
+            $params->{$pair[0]} = $pair[1];
+        }
     }
     ## check if user exists:
+    my $ruser;
     $ruser = get_user($params->{username});
     unless ($ruser) {
         $r->{text} = "Couldn't find user '".$params->{username}."'";
         return $r;
     }
     
-    $chself =0;
+    my $chself =0;
     ### Check if username can edit the requested user:
-    unless ($self->check_auth($sysparams->{'hostname'},AUTH_BOTOP) and $self->check_auth($sysparams->{'hostname'},$ruser->{}->{access_level}+100) {
+    unless ($self->check_auth($sysparams->{'hostname'},AUTH_BOTOP) and $self->check_auth($sysparams->{'hostname'},$ruser->{access_level}+100)) {
         ## if the user is trying to edit themselves:
-        if ($self->{loggedin}->{$sysparams->{'hostname'} eq $ruser->{'hostname'} ) {
+        if ($self->{loggedin}->{$sysparams->{'hostname'}} eq $ruser->{'hostname'} ) {
             $chself = 1;
         } else {
             ##otherwise, unauthorized:
@@ -244,11 +244,58 @@ sub do_user_edit {
     
     ## go over params to change:
     $ruser->{pass} = pwd_encrypt($params->{'pass'}) if ($params->{'pass'});
-    if (looks_like_number($params->{'access_level'}) {
+    if (looks_like_number($params->{'access_level'})) {
         $ruser->{access_level} = $params->{'access_level'} unless ($chself);
     }
+    ## save to $self->{users} hash:
+    $self->{users}->{$params->{username}} = $ruser;
+    
+    ##re-save yml:
+    save_yml($self->{users},'users.yml',$self->{my_path});
+    $r->{'text'} = "User".$params->{username}." changed successfully.";
+    return $r;
+}
+
+sub do_user_info {
+    my $self = shift;
+    my $sysparams = shift;
+    my (%r, $rusername);
+
+    my @params = @{$sysparams->{params}};
+    
+    my $swhere = $sysparams->{nick};
+    $swhere = $sysparams->{location} if $sysparams->{location};
+    %r = (
+          'type' => $sysparams->{type},
+          'where' => $swhere,
+         );
     
 
+    $rusername = $self->get_user($params[0]);
+    
+    unless ($rusername) {
+        $r{'text'} = "Username '".$params[0]."' not recognized.";
+        return %r;
+    }
+    
+    my (@responses);
+    my %r1 = %r; my %r2 = %r; my %r3 = %r; my %r4 = %r;
+    $r1{'text'} = "Username: ".$rusername->{username};
+    unshift (@responses, \%r1);
+    
+    my $alevel = "UNKNOWN";
+    $alevel = $self->{access_levels}->{$rusername->{access_level}} if $self->{access_levels}->{$rusername->{access_level}};
+    $r2{'text'} = "Access level: ".$alevel;
+    unshift (@responses, \%r2);
+    $r3{'text'} = "Last login: ".strftime("%Y-%m-%d %H:%M:%S",localtime($rusername->{last_login})) if $rusername->{last_login};
+    unshift (@responses, \%r3) if $rusername->{last_login};
+    $r4{'text'} = "Last known nickname: ".$rusername->{last_nick} if $rusername->{last_nick};
+    unshift (@responses, \%r4) if $rusername->{last_nick};
+    
+    print "RESPONSES:\n";
+    print Dumper @responses;
+    
+    return \@responses;
 }
 
 sub check_auth {
@@ -265,7 +312,7 @@ sub get_user {
     my $self = shift;
     my $username = shift;
     
-    return $self->{users}->{$username} if $self->{users}->{$username}; 
+    return $self->{users}->{$username} if ($self->{users}->{$username}); 
 }
 
 sub get_logged_users {
