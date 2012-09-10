@@ -37,6 +37,7 @@ sub my_command_list {
     
     $c->{login}->{method} = "do_user_login";
     $c->{adduser}->{method} = "do_user_add";
+    $c->{edituser}->{method} = "do_user_edit";
     return $c;
 }
 ############################################
@@ -189,6 +190,67 @@ sub do_user_add {
         return $r;
 }
 
+
+sub do_user_edit {
+    my ($self, @fullparams) = @_;
+    my ($params, $r);
+
+    my $sysparams = shift @fullparams;
+    
+    $r->{'type'} = $sysparams->{type};
+    $r->{'where'} = $sysparams->{nick};
+    $r->{'where'} = $sysparams->{location} if $sysparams->{location};
+
+    unless ($self->check_auth($sysparams->{'hostname'},AUTH_BOTOP)) {
+        ## already logged in
+        $r->{text} = "You're not authorized to do this.";
+        return $r;
+    }
+
+    ## break apart params:
+    $params->{username} = shift @fullparams;
+    unless (@fullparams) {
+        $r->{text} = "Expecting parameters [param:value] to edit.";
+        return $r;
+    }
+
+    foreach my $p (@fullparams) {
+        ## expect 'param:value'
+        my @pair = split(':',$p);
+        $pair[0] = 'username' if $pair[0] eq 'user';
+        $pair[0] = 'pass' if $pair[0] eq 'password';
+        $pair[0] = 'access_level' if $pair[0] eq 'level';
+        $params->{$pair[0]} = $pair[1];
+    }
+    ## check if user exists:
+    $ruser = get_user($params->{username});
+    unless ($ruser) {
+        $r->{text} = "Couldn't find user '".$params->{username}."'";
+        return $r;
+    }
+    
+    $chself =0;
+    ### Check if username can edit the requested user:
+    unless ($self->check_auth($sysparams->{'hostname'},AUTH_BOTOP) and $self->check_auth($sysparams->{'hostname'},$ruser->{}->{access_level}+100) {
+        ## if the user is trying to edit themselves:
+        if ($self->{loggedin}->{$sysparams->{'hostname'} eq $ruser->{'hostname'} ) {
+            $chself = 1;
+        } else {
+            ##otherwise, unauthorized:
+            $r->{text} = "You're not authorized to do this.";
+            return $r;
+        }
+    }
+    
+    ## go over params to change:
+    $ruser->{pass} = pwd_encrypt($params->{'pass'}) if ($params->{'pass'});
+    if (looks_like_number($params->{'access_level'}) {
+        $ruser->{access_level} = $params->{'access_level'} unless ($chself);
+    }
+    
+
+}
+
 sub check_auth {
     my $self = shift;
     my $hostname = shift || return;
@@ -199,6 +261,12 @@ sub check_auth {
     return;
 }
 
+sub get_user {
+    my $self = shift;
+    my $username = shift;
+    
+    return $self->{users}->{$username} if $self->{users}->{$username}; 
+}
 
 sub get_logged_users {
     my $self = shift;
