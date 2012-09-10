@@ -1,7 +1,6 @@
 #!/usr/bin/perl
 
 package MooBot::Plugin::Core::Users;
-#use base MooBot::Plugin;
 
 use strict; use warnings;
 
@@ -36,9 +35,20 @@ sub my_command_list {
     my $c;
     
     $c->{login}->{method} = "do_user_login";
+        $c->{login}->{syntax} = "login [user] [pass]";
+        $c->{login}->{desc} = "Login to gain access to the bot.";
+
     $c->{adduser}->{method} = "do_user_add";
+        $c->{adduser}->{syntax} = "adduser [user] [pass] ([access_level])";
+        $c->{adduser}->{desc} = "Add a user to the bot. Must be a Bot Operator to do that. If 'access_level' is empty, the bot will add the user as 'USER'. Access_level must be numerical [USER=10, CONTRIBUTOR=100, BOTOP=500]";
+
     $c->{edituser}->{method} = "do_user_edit";
+        $c->{edituser}->{syntax} = "edituser [username] [param1:value1] ([param2:value2]) ...";
+        $c->{edituser}->{desc} = "Edit user details. Available params: username:newuser pass:newpassword";
+
     $c->{userinfo}->{method} = "do_user_info";
+        $c->{userinfo}->{syntax} = "userinfo [username]";
+        $c->{userinfo}->{desc} = "Retrives user info from the bot database.";
     
     return $c;
 }
@@ -57,7 +67,7 @@ sub new {
     #print Dumper $self->{users};
     
     $self->{access_levels} = {
-            99999 => 'BOT ADMIN',
+            9999 => 'BOT ADMIN',
             500 => 'BOT OPERATOR',
             100 => 'CONTRIBUTOR',
             10 => 'USER',
@@ -165,6 +175,8 @@ sub do_user_add {
         
         
         my $newuser;
+        
+        
         if (looks_like_number($params->{access_level}) and $self->check_auth($sysparams->{'hostname'}, $params->{'access_level'}+10)) {
             $newuser->{access_level} = $params->{access_level};
         } else {

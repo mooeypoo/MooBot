@@ -125,18 +125,17 @@ sub process_cmd {
     my $cmd = $self->is_cmd($params[0]);
     shift @params;
     if ($cmd) {
-        print "RECOGNIZED A COMMAND: $cmd\n";
+        ##check if it's "help":
+        delete $phash->{rawmsg};
+        if ($cmd eq 'help') {
+            my $ncmd = $params[0] if $params[0];
+            $phash->{params} = \@params;
+            return $self->get_help($ncmd, $phash);
+        }
+        
         if ($self->{cmds}->{$cmd}) {
             ##insert the general parameters into the params array:
-            #print "Command is in the cmd hash\n";
-
-            delete $phash->{rawmsg};
             $phash->{params} = \@params;
-            #unshift(@params, $phash);
-
-        print "process_cmd PARAMS:\n";
-        print Dumper $phash;
-
             
             my $plg = $self->{plugins}->{$self->{cmds}->{$cmd}->{plugin}};
             my $routinename = $self->{cmds}->{$cmd}->{routine};
@@ -144,6 +143,46 @@ sub process_cmd {
             return $plg->$routinename($phash) if $plg->can($routinename);
         }
     }
+}
+
+sub get_help {
+    my ($self, $cmd, $sysparams) = @_;
+
+    my $swhere = $sysparams->{nick};
+    $swhere = $sysparams->{location} if $sysparams->{location};
+    my %r = (
+          'type' => $sysparams->{type},
+          'where' => $swhere,
+         );
+
+    ## See if command exists:
+    unless ($self->{cmds}->{$cmd}) {
+        $r{'text'} = "Command '".$cmd."' not found.";
+        return \%r;
+    }
+    
+    my $plg = $self->{plugins}->{$self->{cmds}->{$cmd}->{plugin}};
+
+    unless ($plg) {
+        $r{'text'} = "The plugin '".$self->{cmds}->{$cmd}->{plugin}."' is not active.";
+        return \%r;
+    }
+    
+    ##read the help:
+    my (@results, $cmdref);
+    my %r1 = %r; my %r2 = %r; my %r3 = %r; my %r4 = %r;
+    $cmdref = $plg->my_command_list();
+    
+    $r1{'text'} = "Command: ".$cmd;
+    push (@results, \%r1);
+
+    $r2{'text'} = $cmdref->{$cmd}->{desc};
+    push (@results, \%r2);
+
+    $r3{'text'} = "SYNTAX: ".$cmdref->{$cmd}->{syntax};
+    push (@results, \%r3);
+    
+    return \@results;
 }
 
 sub set_cmdchar {

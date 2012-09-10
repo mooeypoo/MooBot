@@ -1,12 +1,8 @@
 ---
 admin:
-  access_level: 99999
+  access_level: 9999
   hostname: ~mooeypoo@scienceforums.net
-  last_login: 1347171239
+  last_login: 1347249103
   last_nick: mooeypoo
   pass: $2a$08$MRojXMtLkm8OUJqXHpJhredM4qoXR5MieIPTZuTDD70ebHcTDMnfm
   username: admin
-moo:
-  access_level: 10
-  pass: $2a$08$uS2shGojMpkTOe0xBp6Xlez8Wyq67xJPNSzJCN1CPLqgYp9Gx2P4W
-  username: moo
