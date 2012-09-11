@@ -2,6 +2,7 @@
 
 package MooBot::Plugin;
 
+use MooBot::Utils;
 # MooBot::Plugin
 # --------------
 # Sets up basic functionality and hierarchy of MooBot plugins
@@ -46,17 +47,16 @@ sub new {
                 warn "Could not load $plg because: $@";
             } else {
                 my $plg_cmd_list = $plg->my_command_list if $plg->can("my_command_list");;
-
                 ## Try to instance the object
                 ## (A proper constructor should die() on failure)
                 my $plg_obj = $plg->new();
                 if ($plg_obj) {
                     my $name = $plg_obj->plg_name || ref $plg_obj;
-                    if ($plg_obj) {
+                    $self->{plugins}->{$name} = $plg_obj; ## $name;
+                    if ($plg_cmd_list) {
                         foreach my $trig (keys $plg_cmd_list) {
                             my $routine = $plg_cmd_list->{$trig}->{method} if $plg_cmd_list->{$trig}->{method} ;
                             ## Now we know about this obj.
-                            $self->{plugins}->{$name} = $plg_obj; ## $name;
                             $self->{cmds}->{$trig}->{plugin} = $name;
                             $self->{cmds}->{$trig}->{routine} = $routine;
                         }
@@ -73,6 +73,7 @@ sub new {
 sub do_auto_method {
     my ($self, $method, @params) = @_;
     
+    
     ## Go over plugin list and see whichever one has the proper method
     ## If the plugin has that method, run it.
     ## 
@@ -81,6 +82,8 @@ sub do_auto_method {
     ## on_bot_init (running on _start)
     ## on_bot_connect (running on irc_connect)
     ## on_bot_join_chan (running on irc_user_join only if bot itself is the joining party)
+    ## on_bot_public (running on irc_public)
+    ## on_bot_privmsg (running on irc_privmsg)
     ## on_user_join_chan (running on irc_user_join on users except bot)
 
     my @method_list = qw/
@@ -88,6 +91,8 @@ sub do_auto_method {
             on_bot_connect
             on_bot_join_chan
             on_user_join_chan
+            on_bot_public
+            on_bot_privmsg
         /;
 
     return unless grep($method, @method_list);    
@@ -100,7 +105,7 @@ sub do_auto_method {
         my $res = $plg_obj->$method(@params) if $plg_obj->can($method);
         push(@result, $res) if $res;
     }
-    return @result;
+    return \@result;
 }
 
 sub is_cmd {
@@ -121,6 +126,10 @@ sub is_cmd {
 sub process_cmd {
     my ($self, $phash) = @_;
     
+        print "---\n---\n---\n";
+        print Dumper $phash;
+        print "---\n---\n---\n";
+
     my @params = split(' ',$phash->{rawmsg});
     my $cmd = $self->is_cmd($params[0]);
     shift @params;
@@ -128,9 +137,8 @@ sub process_cmd {
         ##check if it's "help":
         delete $phash->{rawmsg};
         if ($cmd eq 'help') {
-            my $ncmd = $params[0] if $params[0];
             $phash->{params} = \@params;
-            return $self->get_help($ncmd, $phash);
+            return $self->get_help($phash);
         }
         
         if ($self->{cmds}->{$cmd}) {
@@ -146,43 +154,61 @@ sub process_cmd {
 }
 
 sub get_help {
-    my ($self, $cmd, $sysparams) = @_;
+    my ($self, $sysparams) = @_;
+    my (@results, $cmdref, $rtemp);
+
+    print "--------\n-------\n";
+    print "get help sub: \n";
+    print Dumper $sysparams;
+    print "--------\n";
+
 
     my $swhere = $sysparams->{nick};
     $swhere = $sysparams->{location} if $sysparams->{location};
-    my %r = (
+    my $r = {
           'type' => $sysparams->{type},
           'where' => $swhere,
-         );
+        };
 
+    my $cmd = $sysparams->{params}[0];
+    if (!defined $sysparams->{params}[0]) {
+        my $counter =0;
+        my @cmdlist;
+        
+        foreach my $scmd (keys $self->{cmds}) {
+            if ($counter > 5) {
+                push (@results, join (" | ", @cmdlist));
+                @cmdlist = []; ## empty
+            }
+            push(@cmdlist, $scmd);
+            $counter++;
+        }
+        push (@results, join (" | ", @cmdlist));
+        push @results, "For help on specific command, type ".$self->{cmdchar}."help [command]";
+        return pushreply($r, @results);
+        
+    }
     ## See if command exists:
     unless ($self->{cmds}->{$cmd}) {
-        $r{'text'} = "Command '".$cmd."' not found.";
-        return \%r;
+        push @results, "Command '".$cmd."' not found.";
+        return pushreply($r, @results);
     }
     
     my $plg = $self->{plugins}->{$self->{cmds}->{$cmd}->{plugin}};
 
     unless ($plg) {
-        $r{'text'} = "The plugin '".$self->{cmds}->{$cmd}->{plugin}."' is not active.";
-        return \%r;
+        push @results, "The plugin '".$self->{cmds}->{$cmd}->{plugin}."' is not active.";
+        return pushreply($r, @results);
     }
     
     ##read the help:
-    my (@results, $cmdref);
-    my %r1 = %r; my %r2 = %r; my %r3 = %r; my %r4 = %r;
     $cmdref = $plg->my_command_list();
     
-    $r1{'text'} = "Command: ".$cmd;
-    push (@results, \%r1);
-
-    $r2{'text'} = $cmdref->{$cmd}->{desc};
-    push (@results, \%r2);
-
-    $r3{'text'} = "SYNTAX: ".$cmdref->{$cmd}->{syntax};
-    push (@results, \%r3);
+    push (@results, "Command: ".$cmd);
+    push (@results, $cmdref->{$cmd}->{desc});
+    push (@results, "SYNTAX: ".$cmdref->{$cmd}->{syntax});
     
-    return \@results;
+    return pushreply($r, @results);
 }
 
 sub set_cmdchar {

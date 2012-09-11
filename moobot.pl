@@ -73,7 +73,9 @@ sub irc_start{
 }
 sub irc_connect {
     print "Connected: ".$bot->{irc}->server_name()."\n";
-    $plugins->do_auto_method('on_bot_connect');
+
+    $plugins->do_auto_method('on_bot_connect'); ##,$params);
+    
 }
 
 sub irc_user_join {
@@ -85,12 +87,21 @@ sub irc_user_join {
     
     print "$nick JOINED $channel ($hostname)\n";
 
+    my $params = {
+            'nick' => $nick,
+            'type' => 'privmsg',
+            'location' => $channel,
+            'hostname' => $hostname,
+        };
+
+
     if ($hostname eq $bot->{irc}->nick_long_form($me)) {
-        $plugins->do_auto_method('on_bot_join_chan');
+        my @reply = $plugins->do_auto_method('on_bot_join_chan',$params);
     } else {
-        $plugins->do_auto_method('on_user_join_chan');
+        my @reply = $plugins->do_auto_method('on_user_join_chan',$params);
     }
-    
+    $bot->speak(@reply) if @reply;
+   
 }
 
 sub irc_public {
@@ -106,9 +117,12 @@ sub irc_public {
             'hostname' => $hostname,
             'rawmsg' => $msg,
         };
+    
+#    my @reply = $plugins->do_auto_method('on_bot_public',$params);
+#    $bot->speak(@reply) if @reply;
 
-    my $result = $plugins->process_cmd($params);
-    $bot->speak($result);
+    my @result = $plugins->process_cmd($params);
+    $bot->speak(@result) if @result;
 }
 
 sub irc_privmsg {
@@ -125,8 +139,12 @@ sub irc_privmsg {
             'rawmsg' => $msg,
         };
 
-    my $result = $plugins->process_cmd($params);
-    $bot->speak($result);
+    #my @reply = $plugins->do_auto_method('on_bot_privmsg',$params);
+    #$bot->speak(@reply) if @reply;
+
+    my @result = $plugins->process_cmd($params);
+    $bot->speak(@result) if @result;
+
 }
 
 

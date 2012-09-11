@@ -85,7 +85,7 @@ sub do_user_login {
     my ($self, $sysparams) = @_;
     my @syntax = qw/username pass/;
     my @required = qw/username pass/;
-    my ($params, $r);
+    my ($params, $r, @reply);
 
     #print Dumper @fullparams;
     my @fullparams = @{$sysparams->{params}};
@@ -102,28 +102,28 @@ sub do_user_login {
         for my $synt (@syntax) {
             $params->{$synt} = shift @fullparams;
         }
+
         print Dumper $params;
         for my $req (@required) {
-            unless ($params->{$req}) {
-                $r->{text} = "Missing parameter: $req.";
-                return $r;
+            unless (defined $params->{$req}) {
+                push @reply, "Missing parameter: $req.";
+                return pushreply($r, @reply);
             }
         }
         ### Check if username is already logged in from this hostname:
         if ($self->{loggedin}->{$sysparams->{'hostname'}}) {
-            ## already logged in
-            $r->{text} = "You're already logged in.";
-            return $r;
+            push @reply, "You're already logged in.";
+            return pushreply($r, @reply);
         }
         ##check if username exists:
         unless ($self->{users}->{$params->{'username'}}) {
-            $r->{text} = "Couldn't find the user.";
-            return $r;
+            push @reply, "Username not found.";
+            return pushreply($r, @reply);
         }
         ##check if pass is right:
         unless (pwd_compare($params->{'pass'},$self->{users}->{$params->{'username'}}->{pass})) {
-            $r->{text} = "Wrong password.";
-            return $r;
+            push @reply, "Wrong password.";
+            return pushreply($r, @reply);
         }
         ## all good, add to hash:
         $self->{loggedin}->{$sysparams->{'hostname'}} = {
@@ -138,23 +138,29 @@ sub do_user_login {
         $self->{users}->{$params->{'username'}}->{last_nick} = $sysparams->{nick};
         save_yml($self->{users},'users.yml',$self->{my_path});
         
-        $r->{text} = "Login successful.";
-        return $r;
+        push @reply, "Login successful.";
+        return pushreply($r, @reply);
+    } else {
+    
+        push @reply, "Don't do this in public!";
+        return pushreply($r, @reply);
     }
-    $r->{text} = "Don't do this in public!";
 }
 
 sub do_user_add {
     my ($self, $sysparams) = @_;
     my @syntax = qw/username pass access_level email/;
     my @required = qw/username pass/;
-    my ($params, $r);
+    my ($params, $r, @reply);
 
     my @fullparams = @{$sysparams->{params}};
     #my $sysparams = shift @fullparams;
     
-    $r->{'type'} = $sysparams->{type};
-    $r->{'where'} = $sysparams->{nick};
+    $r = {
+          'type' => $sysparams->{type},
+          'where' => $sysparams->{nick},
+         };
+    
     $r->{'where'} = $sysparams->{location} if $sysparams->{location};
 
         for my $synt (@syntax) {
@@ -162,15 +168,15 @@ sub do_user_add {
         }
         for my $req (@required) {
             unless ($params->{$req}) {
-                $r->{text} = "Missing parameter: $req.";
-                return $r;
+                push @reply, "Missing parameter: $req.";
+                return pushreply($r, @reply);
             }
         }
         ### Check if username has sufficient auth:
         unless ($self->check_auth($sysparams->{'hostname'},AUTH_BOTOP)) {
             ## already logged in
-            $r->{text} = "You're not authorized to do this.";
-            return $r;
+            push @reply, "Unauthorized.";
+            return pushreply($r, @reply);
         }
         
         
@@ -195,33 +201,34 @@ sub do_user_add {
         ##resave the yml file:
         save_yml($self->{users},'users.yml',$self->{my_path});
 
-        $r->{text} = "User '".$params->{username}."' added with access level ".$newuser->{access_level};
-        return $r;
+        push @reply, "User '".$params->{username}."' added with access level ".$newuser->{access_level};
+        return pushreply($r, @reply);
 }
 
 
 sub do_user_edit {
     my ($self, $sysparams) = @_;
-    my ($params, $r);
+    my ($params, $r, @reply);
 
     #my $sysparams = shift @fullparams;
     my @fullparams = @{$sysparams->{params}};
 
-    $r->{'type'} = $sysparams->{type};
-    $r->{'where'} = $sysparams->{nick};
+    $r = {
+          'type' => $sysparams->{type},
+          'where' => $sysparams->{nick},
+         };
     $r->{'where'} = $sysparams->{location} if $sysparams->{location};
 
     unless ($self->check_auth($sysparams->{'hostname'},AUTH_BOTOP)) {
-        ## already logged in
-        $r->{text} = "You're not authorized to do this.";
-        return $r;
+        push @reply, "Log in first.";
+        return pushreply($r, @reply);
     }
 
     ## break apart params:
     $params->{username} = shift @fullparams;
     unless (@fullparams) {
-        $r->{text} = "Expecting parameters [param:value] to edit.";
-        return $r;
+        push @reply, "Expecting parameters [param:value] to edit.";
+        return pushreply($r, @reply);
     }
 
     foreach my $p (@fullparams) {
@@ -237,8 +244,8 @@ sub do_user_edit {
     my $ruser;
     $ruser = get_user($params->{username});
     unless ($ruser) {
-        $r->{text} = "Couldn't find user '".$params->{username}."'";
-        return $r;
+        push @reply, "Couldn't find user '".$params->{username}."'";
+        return pushreply($r, @reply);
     }
     
     my $chself =0;
@@ -249,8 +256,8 @@ sub do_user_edit {
             $chself = 1;
         } else {
             ##otherwise, unauthorized:
-            $r->{text} = "You're not authorized to do this.";
-            return $r;
+            push @reply, "Unauthorized.";
+            return pushreply($r, @reply);
         }
     }
     
@@ -264,50 +271,47 @@ sub do_user_edit {
     
     ##re-save yml:
     save_yml($self->{users},'users.yml',$self->{my_path});
-    $r->{'text'} = "User".$params->{username}." changed successfully.";
-    return $r;
+
+    push @reply, "User".$params->{username}." changed successfully.";
+    return pushreply($r, @reply);
+
 }
 
 sub do_user_info {
     my $self = shift;
     my $sysparams = shift;
-    my (%r, $rusername);
+    my ($r, $rusername, @reply);
 
     my @params = @{$sysparams->{params}};
     
     my $swhere = $sysparams->{nick};
     $swhere = $sysparams->{location} if $sysparams->{location};
-    %r = (
+    $r = {
           'type' => $sysparams->{type},
           'where' => $swhere,
-         );
+         };
     
 
     $rusername = $self->get_user($params[0]);
     
     unless ($rusername) {
-        $r{'text'} = "Username '".$params[0]."' not recognized.";
-        return %r;
+        push @reply, "Username '".$params[0]."' not recognized.";
+        return pushreply($r, @reply);
     }
     
-    my (@responses);
-    my %r1 = %r; my %r2 = %r; my %r3 = %r; my %r4 = %r;
-    $r1{'text'} = "Username: ".$rusername->{username};
-    unshift (@responses, \%r1);
+#    my (@responses);
+#    my %r1 = %r; my %r2 = %r; my %r3 = %r; my %r4 = %r;
+#    $r1{'text'} = "Username: ".$rusername->{username};
+    push @reply, "Username: ".$rusername->{username};
     
     my $alevel = "UNKNOWN";
     $alevel = $self->{access_levels}->{$rusername->{access_level}} if $self->{access_levels}->{$rusername->{access_level}};
-    $r2{'text'} = "Access level: ".$alevel;
-    unshift (@responses, \%r2);
-    $r3{'text'} = "Last login: ".strftime("%Y-%m-%d %H:%M:%S",localtime($rusername->{last_login})) if $rusername->{last_login};
-    unshift (@responses, \%r3) if $rusername->{last_login};
-    $r4{'text'} = "Last known nickname: ".$rusername->{last_nick} if $rusername->{last_nick};
-    unshift (@responses, \%r4) if $rusername->{last_nick};
-    
-    print "RESPONSES:\n";
-    print Dumper @responses;
-    
-    return \@responses;
+
+    push @reply, "Access level: ".$alevel;
+    push(@reply, "Last login: ".strftime("%Y-%m-%d %H:%M:%S",localtime($rusername->{last_login}))) if $rusername->{last_login};
+    push(@reply, "Last known nickname: ".$rusername->{last_nick}) if $rusername->{last_nick};
+
+    return pushreply($r, @reply);
 }
 
 sub check_auth {

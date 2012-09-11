@@ -21,6 +21,7 @@ our @EXPORT_OK = qw/
     read_yml
     pwd_encrypt
     pwd_compare
+    pushreply
 /;
 our @EXPORT = @EXPORT_OK;
 
@@ -82,3 +83,15 @@ sub pwd_compare {
     return 0; ## FALSE
 }
 
+sub pushreply {
+    my $hashref = shift;
+    my @replies = @_;
+    
+    print "---\n---\n pushreply\n";
+    print Dumper @replies;
+    print "---\n---\n\n\n";
+
+    $hashref->{reply} = \@replies;
+    
+    return $hashref;
+}
