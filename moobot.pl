@@ -118,11 +118,13 @@ sub irc_public {
             'rawmsg' => $msg,
         };
     
-#    my @reply = $plugins->do_auto_method('on_bot_public',$params);
-#    $bot->speak(@reply) if @reply;
-
     my @result = $plugins->process_cmd($params);
     $bot->speak(@result) if @result;
+
+    my @reply = $plugins->do_auto_method('on_bot_public',$params);
+    $bot->speak(@reply) if @reply;
+
+
 }
 
 sub irc_privmsg {
@@ -139,8 +141,8 @@ sub irc_privmsg {
             'rawmsg' => $msg,
         };
 
-    #my @reply = $plugins->do_auto_method('on_bot_privmsg',$params);
-    #$bot->speak(@reply) if @reply;
+    my @reply = $plugins->do_auto_method('on_bot_privmsg',$params);
+    $bot->speak(@reply) if (@reply);
 
     my @result = $plugins->process_cmd($params);
     $bot->speak(@result) if @result;

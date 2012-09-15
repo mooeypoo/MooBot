@@ -29,12 +29,20 @@ sub new {
 }
 
 sub speak {
-    my ($self, $params) = @_;
+    my $self = shift;
+    my $fparams = shift;
     
     print "--------\n-------\n";
     print "SPEAK SUB: \n";
-    print Dumper $params;
+    print Dumper $fparams;
     print "--------\n";
+
+    my $params;
+    if (ref $fparams eq 'ARRAY') {
+        $params = @$fparams[0];
+    } else {
+        $params = $fparams;
+    }
 
     my $err = 0;
     
@@ -53,41 +61,6 @@ sub speak {
     
 }
 
-#sub speak {
-#    my $self= shift;
-#    my $speak_hash = shift || return;
-#    
-#    
-#    my $err =0;
-#
-#    if (ref $speak_hash eq 'ARRAY') { ## MULTIPLE REPLIES
-#        foreach my $line_hash (@$speak_hash) {
-#            my $type = $line_hash->{type} ? $line_hash->{type} : 'privmsg';
-#            $err=1 if (!$line_hash->{where}) or (!$line_hash->{text});
-#            
-#            my $loc = $line_hash->{where} if $line_hash->{where};
-#            my $reply = $line_hash->{text} if $line_hash->{text};
-#            
-#            ## speak:
-#            unless ($err) {
-#                $self->{irc}->yield($type => $loc, $reply);
-#            }
-#        }
-#    } elsif (ref $speak_hash eq 'HASH') { ## SINGLE REPLY
-#        my $type = $speak_hash->{type} ? $speak_hash->{type} : 'privmsg';
-#        $err=1 if (!$speak_hash->{where}) or (!$speak_hash->{text});
-#            
-#        my $loc = $speak_hash->{where} if $speak_hash->{where};
-#        my $reply = $speak_hash->{text} if $speak_hash->{text};
-#            
-#        ## speak:
-#        unless ($err) {
-#            $self->{irc}->yield($type => $loc, $reply);
-#        }
-#    }
-#
-#    
-#}
 
 
 
