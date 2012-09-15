@@ -12,17 +12,16 @@ If you have suggestions for improvement, or general requests, add them to the "i
 ## Purpose
 This program was created as an easy-to-use IRC automated bot for general use purposes. There package was created under the following general premises:
 
-1.  "Dummies" proof
-
-    The bot should be programmed in such a way where individual users can install and operate it without knowing perl or any other code.
-2.  Configurable
-
+*  **"Dummy" proof**
+   
+   The bot should be programmed in such a way where individual users can install and operate it without knowing perl or any other code.
+*  **Configurable**
+   
     As many of the bot operations and configuration should be controlled by the user.
-3.  Scallable and Expandable
+*  **Scallable and Expandable**
 
-    There should be options to add or remove bot operations using plugins.
-    Plugins should be easy to program by an external developer.
-
+   * There should be options to add or remove bot operations using plugins.
+   * Plugins should be easy to program by an external developer.
 
 
 ## Author and Copyright
