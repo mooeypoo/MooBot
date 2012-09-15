@@ -11,6 +11,7 @@ If you have suggestions for improvement, or general requests, add them to the "i
 
 ## Purpose
 This program was created as an easy-to-use IRC automated bot for general use purposes. There package was created under the following general premises:
+
 1.  "Dummies" proof
     The bot should be programmed in such a way where individual users can install and operate it without knowing perl or any other code.
 2.  Configurable
