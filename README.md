@@ -1,5 +1,5 @@
 # MooBot
-A Perl-based scallable IRC bot with plugin and language support
+A Perl-based scallable IRC bot with plugin and language  support
 
 ## Current Status
 This project is currently in development. While it will likely run if you try it, it's highly *not* recommended you do that just yet.
